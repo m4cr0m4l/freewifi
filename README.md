@@ -22,3 +22,10 @@ options:
   -m         : set random MAC
   -w <words> : path to wordlist filename
 ```
+
+## Donations
+If you find this utility helpful and would like to support further development, consider making a donation in Bitcoin to the address `bc1qxp8va5r25s4pxc8yphs6dn7jfpq3n2r90hgn34`. You can also scan the QR code below to send your contribution. Your support will help fund the creation of more utilities and enhancements.
+
+![address 00](https://github.com/user-attachments/assets/2c8af3d9-5390-4561-a208-5fa5c3d7ec18)
+
+Thank you for your contribution!
