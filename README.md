@@ -1,5 +1,5 @@
 # freewifi
-The freewifi script is a straightforward Bash utility designed for wireless network analysis and deauthentication attacks. It enables users to capture packets from a specified wireless interface and execute deauthentication attacks on connected clients. This script is built with simplicity in mind, making it easy to extend and customize for various use cases. 
+The freewifi script is a straightforward Bash utility designed for wireless network analysis and deauthentication attacks. By leveraging tools from the Aircrack-ng suite, it combines their functionalities to allow users to efficiently execute deauthentication attacks on connected clients and perform password cracking with a wordlist. 
 
 ## Features
 - Supports both 2.4GHz and 5GHz frequency bands.
