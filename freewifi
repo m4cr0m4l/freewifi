@@ -38,6 +38,20 @@ check_interface() {
 	fi
 }
 
+check_tool() {
+	tool="$1"
+	if ! command -v "$tool"; then
+		print_error "$tool not found. Please make sure it is installed and on your PATH"
+		exit 1
+	fi
+}
+
+check_tools() {
+	for tool in $@; do
+		check_tool "$tool"
+	done
+}
+
 print_error() {
 	printf "[$BOLD$RED!$NORMAL] %s\n" "$1" >&2
 }
@@ -142,6 +156,8 @@ if [[ -z "$interface" ]]; then
 	exit 1
 fi
 check_interface "$interface"
+
+check_tools aircrack-ng aireplay-ng airodump-ng iw ip macchanger
 
 if [[ -n "$WORDLIST" && ! -f "$WORDLIST" ]]; then
 	print_error "Dictionary $WORDLIST: No such file"
